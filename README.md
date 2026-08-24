@@ -3,6 +3,34 @@
 A lightweight, production-structured inference microservice built with FastAPI and Hugging Face Transformers. It serves the `Qwen/Qwen2.5-0.5B-Instruct` model behind an OpenAI-compatible `/v1` HTTP API contract entirely on CPU.
 
 ---
+## 🔮 Lab Predictions & Architectural Intent
+
+### Predictions
+
+1. **A request with `messages` set to an empty list `[]` — will your current `main.py` reject it, or will it crash trying to run inference on nothing?**
+   > The server will reject it early with a **422 Unprocessable Entity** status code due to Pydantic schema validation (`min_length=1`). If left unvalidated, it would crash with a **500 Internal Server Error** inside `apply_chat_template` or `model.generate` due to empty input tensor dimensions.
+
+2. **A `max_tokens` of `-5` — does your current schema stop this, or does it reach `model.generate()`?**
+   > The schema stops this immediately with a **422 Unprocessable Entity** using field constraints (`ge=1`). If passed directly to `model.generate(..., max_new_tokens=-5)`, it would raise a `ValueError` inside PyTorch/Transformers and trigger a **500 Internal Server Error**.
+
+3. **Two identical requests sent at the same instant — do they run in parallel, or does the second one wait for the first to finish?**
+   > The second request will wait until the first finishes (**serial execution**). Synchronous CPU-bound matrix multiplication blocks the Python event loop and GIL, preventing true parallel inference without a dedicated batching/serving engine.
+
+---
+
+### Core Objective
+
+The idea behind the lab is to verify system resilience across two distinct architectural levels:
+
+1. **Contract & Schema Resilience:**
+   * **Early interception at the schema layer:** Returning a `422` (or `400`) status code for malformed inputs to prevent them from consuming compute resources.
+   * **Prevention of internal crashes:** Ensuring zero `500 Internal Server Error` responses reach the model layer (PyTorch).
+   * **Graceful handling of edge cases:** Returning a `200 OK` status code for unusual but syntactically valid requests (e.g., emojis, multilingual tokens).
+
+2. **Deterministic Dependency Pinning:**
+   * Strict version pinning (`==`) in `requirements.txt` to prevent non-deterministic builds and silent upstream breaking changes from compromising production stability.
+  
+---
 
 ## 📌 Features & API Contract
 
