@@ -103,3 +103,5 @@ prompt_tokens = int(input_ids.shape[1])
 **Verification Output:**
 
 ![Bug Lab Fix Verification](images/W2D2-bug-fix.png)
+
+---
