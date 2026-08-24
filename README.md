@@ -76,3 +76,30 @@ Full test run achieving a `12/12` pass rate (`GREEN CHECK: PASS`) and confirming
 
 ---
 
+### 🐛 Bug Lab: Resolving Upstream Dependency Breaking Changes
+
+#### 1. Problem Diagnosis
+A loose version pin (`transformers>=4.46`) allowed an upstream library upgrade that altered the default return behavior of `tokenizer.apply_chat_template()`. The updated interface no longer guaranteed a raw Tensor, causing an `AttributeError` on `.shape[1]` and leading to a `500 Internal Server Error` during inference.
+
+#### 2. Root-Cause Code Fix
+Instead of downgrading the package, the implementation was hardened by explicitly requesting a structured dictionary return (`return_dict=True`):
+
+```python
+# Hardened, version-resilient tokenization
+encoded = tokenizer.apply_chat_template(
+    messages,
+    add_generation_prompt=True,
+    return_tensors="pt",
+    return_dict=True,
+)
+input_ids = encoded["input_ids"].to("cpu")
+prompt_tokens = int(input_ids.shape[1])
+```
+
+#### 3. Verification & Version Pinning
+- Pinned `transformers==4.46.2` and `torch==2.5.1` in `requirements.txt` to eliminate non-deterministic builds.
+- Verified end-to-end functionality via both `verify.py` and the official OpenAI client test (`client_test.py`).
+
+**Verification Output:**
+
+![Bug Lab Fix Verification](images/W2D2-bug-fix.png)
