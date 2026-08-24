@@ -68,7 +68,7 @@ Uvicorn access logs demonstrating strict Pydantic validation intercepting invali
 
 ![Server-side Validation](images/W2D2-3.png)
 
-3. Test Suite Execution & Concurrency Probe
+2. Test Suite Execution & Concurrency Probe
 Full test run achieving a `12/12` pass rate (`GREEN CHECK: PASS`) and confirming expected serial execution for synchronous CPU inference:
 
 ![Test Suite Results](images/W2D2-4.png)
