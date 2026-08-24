@@ -52,8 +52,9 @@ Successful inference via the official OpenAI client followed by the test suite p
 
 ![Client Verification & Test Suite Pass (GREEN CHECK)](images/W2D2-2.png)
 
+---
 
-### Contract Fuzzing Suite (Extra Lab)
+### 3. Contract Fuzzing Suite (Extra Lab)
 
 Run adversarial and malformed payload tests to verify schema resilience against invalid inputs:
 
@@ -72,4 +73,6 @@ Uvicorn access logs demonstrating strict Pydantic validation intercepting invali
 Full test run achieving a `12/12` pass rate (`GREEN CHECK: PASS`) and confirming expected serial execution for synchronous CPU inference:
 
 ![Test Suite Results](images/W2D2-4.png)
+
+---
 
