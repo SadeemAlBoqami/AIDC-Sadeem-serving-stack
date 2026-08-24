@@ -51,3 +51,15 @@ Logs showing successful initialization of `Qwen/Qwen2.5-0.5B-Instruct` and healt
 Successful inference via the official OpenAI client followed by the test suite pass:
 
 ![Client Verification & Test Suite Pass (GREEN CHECK)](images/W2D2-2.png)
+
+
+### Contract Fuzzing Suite (Extra Lab)
+
+Run adversarial and malformed payload tests to verify schema resilience against invalid inputs:
+
+```bash
+python fuzz_client.py
+```
+
+#### Result & Server Interception:
+
