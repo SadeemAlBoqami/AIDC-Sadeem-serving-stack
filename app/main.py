@@ -32,9 +32,9 @@ from schemas import (
     Usage,
 )
 
-MODEL_ID = os.environ.get("MODEL_ID", "Qwen/Qwen2.5-0.5B-Instruct")
+MODEL_ID = os.environ.get("MODEL_ID", "Qwen/Qwen2.5-0.5B-Instruct") # import the model
 
-app = FastAPI(title="serving-stack", version="wk2")
+app = FastAPI(title="serving-stack", version="wk2") # FastAPI app creating
 
 # Load once at import time. CPU only this week.
 print(f"loading {MODEL_ID} on cpu ...")
@@ -80,17 +80,18 @@ def list_models() -> ModelList:
 @app.post("/v1/chat/completions", response_model=ChatCompletionResponse)
 def chat_completions(req: ChatCompletionRequest) -> ChatCompletionResponse:
     """Run the model over the messages and return an OpenAI-compatible completion."""
-    # 1. تطبيق قالب المحادثة وتحويل الرسائل
+    # 1. تحويل كائنات الرسائل وتطبيق القالب مع return_dict=True
     messages = [m.model_dump(exclude_none=True) for m in req.messages]
-    prompt_text = tokenizer.apply_chat_template(
+    
+    encoded = tokenizer.apply_chat_template(
         messages,
-        tokenize=False,
         add_generation_prompt=True,
+        return_tensors="pt",
+        return_dict=True,
     )
-    inputs = tokenizer(prompt_text, return_tensors="pt").to("cpu")
-    input_ids = inputs["input_ids"]
+    input_ids = encoded["input_ids"].to("cpu")
 
-    # 2. حساب عدد التوكنات المدخلة
+    # 2. حساب عدد التوكنات المدخلة بدقة
     prompt_tokens = int(input_ids.shape[1])
 
     # 3. إعداد معاملات التوليد
