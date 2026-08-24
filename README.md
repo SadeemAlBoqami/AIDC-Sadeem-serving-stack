@@ -42,37 +42,12 @@ uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 
 ## 🧪 Verification & Testing
 
-### Official OpenAI Client Test
+### 1. Server Execution & 200 OK Endpoints
+Logs showing successful initialization of `Qwen/Qwen2.5-0.5B-Instruct` and healthy responses across `/health`, `/v1/models`, and `/v1/chat/completions`:
 
-Run the reference client test against the local server:
+![FastAPI Uvicorn Server Logs & HTTP Status Checks](images/W2D2-1.png)
 
-```bash
-python app/client_test.py
-```
+### 2. Client Test & Full Verification Pass
+Successful inference via the official OpenAI client followed by the test suite pass:
 
-### Full Verification Suite
-
-Execute the lab test suite to confirm the contract integrity:
-
-```bash
-python verify.py
-```
-
----
-
-## 🧪 Verification & Testing
-
-### Official OpenAI Client Test
-
-Run the reference client test against the local server:
-
-```bash
-python app/client_test.py
-
-
----
-
-## 📝 Design Considerations
-
-- **CPU Execution:** Floating-point operations run entirely on the CPU (`torch.float32`).
-- **Concurrency:** The current design executes inference synchronously per request; scalable queueing and async concurrency belong to the serving engine layer.
+![Client Verification & Test Suite Pass (GREEN CHECK)](images/W2D2-2.png)
