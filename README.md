@@ -95,17 +95,23 @@ Full test run achieving a `12/12` pass rate (`GREEN CHECK: PASS`) and confirming
 
 ## Extra Lab: Multi-Stage Build Golf (Model Registry Service)
 
-### Architectural Differences & Methodology
-- **Core Lab (Inference Service)**: Used a single slim stage with a decoupled external cache volume (`hf-cache`) to handle massive dependencies (PyTorch/Transformers) dynamically without baking model weights into the image.
-- **Extra Lab (Multi-Stage Golf)**: Applied a dual-stage build pattern (`builder` vs `runtime`) on a lightweight FastAPI registry service. Dependency wheels and build artifacts were isolated in `--prefix=/install/deps`, and only essential runtime binaries and explicit application files (`main.py`, `registry.json`) were copied across the boundary.
+### Architecture & Optimization Methodology
+- **Dual-Stage Separation**: Built dependencies in an isolated `builder` stage (`--prefix=/install/deps`) and copied only clean binaries into the runtime image to strip build tools, pip caches, and unnecessary artifacts.
+- **Selective Copying**: Whitelisted application runtime files (`main.py`, `registry.json`) instead of copying the whole repository context.
 
 ### Size Comparison Report
 
 | Build Stage | Image Tag | Target | Final Image Size | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| **Naive Build** | `registry:naive` | Baseline | **236 MB** | Baseline |
-| **Multi-Stage Build** | `registry:multistage` | < 300 MB | **51.9 MB** | `GREEN CHECK: PASS` |
+| **Naive Build** | `registry:naive` | Baseline | **278 MB** | Baseline |
+| **Intermediate Multi-Stage** | `registry:multistage` | < 300 MB | **227 MB** (18.3% savings) | Fits Target |
+| **Optimised Multi-Stage** | `registry:multistage` | < 300 MB | **51.9 MB** | `GREEN CHECK: PASS` |
 
+### Verification Artifacts
 
----
+**1. Multi-Stage Size Report Execution:**
+![Size Report Output](extra-multistage/images/W2D3-Extra-lab2.png)
+
+**2. Automated Verifier Green Check:**
+![Verification Pass](extra-multistage/images/W2D3-Extra-lab1.png)
 
