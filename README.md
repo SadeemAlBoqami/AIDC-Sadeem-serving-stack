@@ -32,77 +32,43 @@ The idea behind the lab is to verify system resilience across two distinct archi
   
 ---
 
-## 📌 Features & API Contract
+## Container Size Report (W2D3)
 
-- **`GET /health`** — Liveness and readiness probe returning service and model status.
-- **`GET /v1/models`** — Returns the served model metadata formatted as a standard OpenAI `ModelList`.
-- **`POST /v1/chat/completions`** — Non-streaming completions endpoint supporting chat templates, token slicing, finish reason determination, and full usage metrics.
+| Stage | Image Tag / Build | Compressed (Pull) Size | Disk (Uncompressed) Size |
+| :--- | :--- | :--- | :--- |
+| **Naive Build** | `aidc-serving:naive` | ~6.88 GB | ~17.9 GB |
+| **Slim Build** | `sadeemalboqami/aidc-serving:cpu-v1` | ~625 MB | ~3.03 GB |
 
----
+### Verification
+- Image: `sadeemalboqami/aidc-serving:cpu-v1`
+- Status: `GREEN CHECK: PASS`
 
-## 🛠️ Tech Stack & Dependencies
-
-- **Framework:** FastAPI, Uvicorn
-- **Model:** `Qwen/Qwen2.5-0.5B-Instruct`
-- **Inference Engine:** Hugging Face `transformers` (v4.46.2), PyTorch CPU (v2.5.1)
-- **Validation:** Pydantic v2
+![Image Validation](images/W2D3-Step5.png)
 
 ---
-
-## 🚀 Setup & Execution
-
-### 1. Environment Setup
-
-```bash
-cd app
-python3 -m venv .venv
-source .venv/bin/activate
-pip install --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple -r requirements.txt
-```
-
-### 2. Start the Server
-
-```bash
-uvicorn main:app --host 0.0.0.0 --port 8000 --reload
-```
-
 ---
 
-## 🧪 Verification & Testing
+## Extra Lab: Multi-Stage Build Golf (Model Registry Service)
 
-### 1. Server Execution & 200 OK Endpoints
-Logs showing successful initialization of `Qwen/Qwen2.5-0.5B-Instruct` and healthy responses across `/health`, `/v1/models`, and `/v1/chat/completions`:
+### Architecture & Optimization Methodology
+- **Dual-Stage Separation**: Built dependencies in an isolated `builder` stage (`--prefix=/install/deps`) and copied only clean binaries into the runtime image to strip build tools, pip caches, and unnecessary artifacts.
+- **Selective Copying**: Whitelisted application runtime files (`main.py`, `registry.json`) instead of copying the whole repository context.
 
-![FastAPI Uvicorn Server Logs & HTTP Status Checks](images/W2D2-1.png)
+### Size Comparison Report
 
-### 2. Client Test & Full Verification Pass
-Successful inference via the official OpenAI client followed by the test suite pass:
+| Build Stage | Image Tag | Target | Final Image Size | Status |
+| :--- | :--- | :--- | :--- | :--- |
+| **Naive Build** | `registry:naive` | Baseline | **278 MB** | Baseline |
+| **Intermediate Multi-Stage** | `registry:multistage` | < 300 MB | **227 MB** (18.3% savings) | Fits Target |
+| **Optimised Multi-Stage** | `registry:multistage` | < 300 MB | **51.9 MB** | `GREEN CHECK: PASS` |
 
-![Client Verification & Test Suite Pass (GREEN CHECK)](images/W2D2-2.png)
+### Verification Artifacts
 
----
+**1. Multi-Stage Size Report Execution:**
+![Size Report Output](images/W2D3-Extra-lab2.png)
 
-### 3. Contract Fuzzing Suite (Extra Lab)
-
-Run adversarial and malformed payload tests to verify schema resilience against invalid inputs:
-
-```bash
-python fuzz_client.py
-```
-
-#### Result & Server Interception:
-
-1. Server-Side Request Interception
-Uvicorn access logs demonstrating strict Pydantic validation intercepting invalid payloads with `422 Unprocessable Entity` before compute dispatch, while allowing valid requests with 200 OK:
-
-![Server-side Validation](images/W2D2-3.png)
-
-2. Test Suite Execution & Concurrency Probe
-Full test run achieving a `12/12` pass rate (`GREEN CHECK: PASS`) and confirming expected serial execution for synchronous CPU inference:
-
-![Test Suite Results](images/W2D2-4.png)
-
----
+**2. Automated Verifier Green Check:**
+![Verification Pass](images/W2D3-Extra-lab1.png)
 
 ### 🐛 Bug Lab: Resolving Upstream Dependency Breaking Changes
 
