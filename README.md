@@ -133,3 +133,14 @@ prompt_tokens = int(input_ids.shape[1])
 ![Bug Lab Fix Verification](images/W2D2-bug-fix.png)
 
 ---
+
+## Container Size Report (W2D3)
+
+| Stage | Image Tag / Build | Compressed (Pull) Size | Disk (Uncompressed) Size |
+| :--- | :--- | :--- | :--- |
+| **Naive Build** | `aidc-serving:naive` | ~6.88 GB | ~17.9 GB |
+| **Slim Build** | `sadeemalboqami/aidc-serving:cpu-v1` | ~625 MB | ~3.03 GB |
+
+### Verification
+- Image: `sadeemalboqami/aidc-serving:cpu-v1`
+- Status: `GREEN CHECK: PASS`
