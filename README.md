@@ -76,3 +76,36 @@ Full test run achieving a `12/12` pass rate (`GREEN CHECK: PASS`) and confirming
 
 ---
 
+
+## Container Size Report (W2D3)
+
+| Stage | Image Tag / Build | Compressed (Pull) Size | Disk (Uncompressed) Size |
+| :--- | :--- | :--- | :--- |
+| **Naive Build** | `aidc-serving:naive` | ~6.88 GB | ~17.9 GB |
+| **Slim Build** | `sadeemalboqami/aidc-serving:cpu-v1` | ~625 MB | ~3.03 GB |
+
+### Verification
+- Image: `sadeemalboqami/aidc-serving:cpu-v1`
+- Status: `GREEN CHECK: PASS`
+
+![Image Validation](images/W2D3-Step5.png)
+
+---
+---
+
+## Extra Lab: Multi-Stage Build Golf (Model Registry Service)
+
+### Architectural Differences & Methodology
+- **Core Lab (Inference Service)**: Used a single slim stage with a decoupled external cache volume (`hf-cache`) to handle massive dependencies (PyTorch/Transformers) dynamically without baking model weights into the image.
+- **Extra Lab (Multi-Stage Golf)**: Applied a dual-stage build pattern (`builder` vs `runtime`) on a lightweight FastAPI registry service. Dependency wheels and build artifacts were isolated in `--prefix=/install/deps`, and only essential runtime binaries and explicit application files (`main.py`, `registry.json`) were copied across the boundary.
+
+### Size Comparison Report
+
+| Build Stage | Image Tag | Target | Final Image Size | Status |
+| :--- | :--- | :--- | :--- | :--- |
+| **Naive Build** | `registry:naive` | Baseline | **236 MB** | Baseline |
+| **Multi-Stage Build** | `registry:multistage` | < 300 MB | **51.9 MB** | `GREEN CHECK: PASS` |
+
+
+---
+
