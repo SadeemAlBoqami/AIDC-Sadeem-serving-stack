@@ -110,8 +110,8 @@ Full test run achieving a `12/12` pass rate (`GREEN CHECK: PASS`) and confirming
 ### Verification Artifacts
 
 **1. Multi-Stage Size Report Execution:**
-![Size Report Output](extra-multistage/images/W2D3-Extra-lab2.png)
+![Size Report Output](images/W2D3-Extra-lab2.png)
 
 **2. Automated Verifier Green Check:**
-![Verification Pass](extra-multistage/images/W2D3-Extra-lab1.png)
+![Verification Pass](images/W2D3-Extra-lab1.png)
 
