@@ -144,3 +144,7 @@ prompt_tokens = int(input_ids.shape[1])
 ### Verification
 - Image: `sadeemalboqami/aidc-serving:cpu-v1`
 - Status: `GREEN CHECK: PASS`
+
+![Image Validation](images/W2D3-Step5.png)
+
+---
