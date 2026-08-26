@@ -83,7 +83,7 @@ INFO:     127.0.0.1:56556 - "POST /v1/chat/completions HTTP/1.1" 200 OK
 GREEN CHECK: PASS
 ```
 
-![GPU Mode Verification](assets/gpu_pass.png)
+![GPU Mode Verification](images/gpu_pass.png)
 
 
 ### Environment 2: CPU Fallback Runtime (`CUDA_VISIBLE_DEVICES=""`)
@@ -100,7 +100,7 @@ INFO:     127.0.0.1:47450 - "POST /v1/chat/completions HTTP/1.1" 400 Bad Request
 [PASS] GPU-only request fails cleanly on CPU (400, clear message)
 GREEN CHECK: PASS
 ```
-![CPU Mode Verification](assets/cpu_pass.png)
+![CPU Mode Verification](images/cpu_pass.png)
 
 ---
 
