@@ -38,3 +38,76 @@ GREEN CHECK: PASS
 ```
 
 ---
+# Extra Lab W2D4: Device-Agnostic Sanity Harness & Graceful Degradation
+
+## Overview
+
+Engineered a device-aware, contract-enforcing FastAPI serving microservice alongside an automated test harness (`sanity_harness.py`). The implementation ensures **Graceful Degradation**: the service truthfully reports its underlying execution target (`cuda` vs. `cpu`), processes generic requests across both environments, and cleanly rejects GPU-bound requests on CPU fallback instances with an HTTP 400 bad request rather than failing with unhandled 500 runtime exceptions.
+
+---
+
+## Architectural Implementation
+
+### 1. Device-Aware Service (`app/main.py`)
+
+* **Hardware Discovery**: Resolves device capability at import time via `torch.cuda.is_available()`.
+* **State Reporting**: Exposes active execution environment through `/health` (`{"status": "ok", "device": "cuda" | "cpu"}`).
+* **Guard Clause & Contract Enforcement**: Intercepts requests specifying `require_gpu=True` in `CompletionRequest`. When evaluated on a CPU-backed runtime, raises `HTTPException(status_code=400)` with an informative payload before entering compute paths.
+
+### 2. Adaptive Sanity Harness (`sanity_harness.py`)
+
+The testing harness probes the active runtime dynamically without hardcoded environment assumptions:
+
+1. Validates device disclosure via `/health`.
+2. Verifies baseline inference succeeds regardless of hardware (`200 OK`).
+3. Evaluates hardware-bound constraints:
+   * On **GPU**: Asserts `require_gpu=True` succeeds (`200 OK`).
+   * On **CPU**: Asserts `require_gpu=True` fails cleanly (`400 Bad Request` containing explicit diagnostic detail).
+
+---
+
+## Dual-Environment Empirical Verification
+
+### Environment 1: Native GPU Runtime (CUDA Enabled)
+
+* **Command**: `python3 -m uvicorn app.main:app --host 0.0.0.0 --port 8000`
+* **Test Execution**: `python3 sanity_harness.py`
+
+```text
+INFO:     127.0.0.1:56538 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56542 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56556 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+[PASS] health reports a valid device
+[PASS] normal request succeeds regardless of device
+[PASS] GPU-only request succeeds on real GPU
+GREEN CHECK: PASS
+```
+
+### Environment 2: CPU Fallback Runtime (`CUDA_VISIBLE_DEVICES=""`)
+
+* **Command**: `CUDA_VISIBLE_DEVICES="" python3 -m uvicorn app.main:app --host 0.0.0.0 --port 8000`
+* **Test Execution**: `python3 sanity_harness.py`
+
+```text
+INFO:     127.0.0.1:47426 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47436 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47450 - "POST /v1/chat/completions HTTP/1.1" 400 Bad Request
+[PASS] health reports a valid device
+[PASS] normal request succeeds regardless of device
+[PASS] GPU-only request fails cleanly on CPU (400, clear message)
+GREEN CHECK: PASS
+```
+
+---
+
+## Verification Matrix
+
+| Test Case | Device Target | `require_gpu` Flag | Expected Status | Observed Status | Verdict |
+| --- | --- | --- | --- | --- | --- |
+| **Health Check** | Any (`cpu`/`cuda`) | N/A | `200 OK` | `200 OK` | **PASS** |
+| **Baseline Inference** | GPU (`cuda`) | `False` | `200 OK` | `200 OK` | **PASS** |
+| **GPU-Bound Request** | GPU (`cuda`) | `True` | `200 OK` | `200 OK` | **PASS** |
+| **Baseline Inference** | CPU (`cpu`) | `False` | `200 OK` | `200 OK` | **PASS** |
+| **GPU-Bound Request** | CPU (`cpu`) | `True` | `400 Bad Request` | `400 Bad Request` | **PASS** |
+
+---
