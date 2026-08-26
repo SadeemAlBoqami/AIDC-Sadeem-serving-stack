@@ -1,78 +1,40 @@
-# Serving Stack (Week 2): OpenAI-Compatible CPU Inference Service
+# Week 2 Day 4: Portable GPU Serving Image with CPU Fallback
 
-A lightweight, production-structured inference microservice built with FastAPI and Hugging Face Transformers. It serves the `Qwen/Qwen2.5-0.5B-Instruct` model behind an OpenAI-compatible `/v1` HTTP API contract entirely on CPU.
-
----
-
-## 📌 Features & API Contract
-
-- **`GET /health`** — Liveness and readiness probe returning service and model status.
-- **`GET /v1/models`** — Returns the served model metadata formatted as a standard OpenAI `ModelList`.
-- **`POST /v1/chat/completions`** — Non-streaming completions endpoint supporting chat templates, token slicing, finish reason determination, and full usage metrics.
+## Overview
+Built a unified, portable container image (`aidc-serving:gpu-v1`) based on NVIDIA CUDA runtime (`nvidia/cuda:12.4.1-runtime-ubuntu22.04`). The serving stack dynamically selects CUDA when hardware acceleration is available and gracefully degrades to CPU fallback when executed on a GPU-less machine without container failure.
 
 ---
 
-## 🛠️ Tech Stack & Dependencies
-
-- **Framework:** FastAPI, Uvicorn
-- **Model:** `Qwen/Qwen2.5-0.5B-Instruct`
-- **Inference Engine:** Hugging Face `transformers` (v4.46.2), PyTorch CPU (v2.5.1)
-- **Validation:** Pydantic v2
+## Architectural Decisions & Portable Runtime
+* **Base Image**: `nvidia/cuda:12.4.1-runtime-ubuntu22.04` to provide required CUDA userspace drivers.
+* **Explicit Python 3.11 Toolchain**: Installed and symlinked `python3.11` to prevent version drift from Ubuntu 22.04 default (`3.10`).
+* **Dynamic Device Discovery**: `app/generate_probe.py` and `app/main.py` resolve execution targets via `torch.cuda.is_available()` at runtime rather than baking device constraints into the image.
 
 ---
 
-## 🚀 Setup & Execution
+## Performance Benchmark & Evidence (128 Tokens Generated)
 
-### 1. Environment Setup
+| Environment | Device | Precision | Throughput (Tokens/s) |
+| :--- | :--- | :--- | :--- |
+| **Colab Environment** | NVIDIA Tesla T4 | `torch.float16` | **31.4** |
+| **Local Host** | CPU Fallback | `torch.float32` | Baseline |
 
-```bash
-cd app
-python3 -m venv .venv
-source .venv/bin/activate
-pip install --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple -r requirements.txt
+---
+
+## Verification Suite (Tier-0 Green Check)
+Executed the local and remote verification script `verify.sh`:
+
+* **Part 1**: Resolved and verified GPU image `sadeemalboqami/aidc-serving:gpu-v1`.
+* **Part 2**: Confirmed `/health` returns HTTP 200 on CPU fallback mode (without passing `--gpus`).
+* **Part 3**: Validated `gpu_evidence.json` generated on Colab T4 runtime (`cuda: true`, positive throughput).
+
+```text
+waiting for /health on CPU fallback (up to 420s) ...
+OK:Tesla T4:31.4
+part 1: GPU image resolved
+part 2: /health 200 on CPU fallback
+part 3: colab evidence shows cuda: true
+GREEN CHECK: PASS
 ```
 
-### 2. Start the Server
-
-```bash
-uvicorn main:app --host 0.0.0.0 --port 8000 --reload
-```
-
 ---
-
-## 🧪 Verification & Testing
-
-### 1. Server Execution & 200 OK Endpoints
-Logs showing successful initialization of `Qwen/Qwen2.5-0.5B-Instruct` and healthy responses across `/health`, `/v1/models`, and `/v1/chat/completions`:
-
-![FastAPI Uvicorn Server Logs & HTTP Status Checks](images/W2D2-1.png)
-
-### 2. Client Test & Full Verification Pass
-Successful inference via the official OpenAI client followed by the test suite pass:
-
-![Client Verification & Test Suite Pass (GREEN CHECK)](images/W2D2-2.png)
-
----
-
-### 3. Contract Fuzzing Suite (Extra Lab)
-
-Run adversarial and malformed payload tests to verify schema resilience against invalid inputs:
-
-```bash
-python fuzz_client.py
-```
-
-#### Result & Server Interception:
-
-1. Server-Side Request Interception
-Uvicorn access logs demonstrating strict Pydantic validation intercepting invalid payloads with `422 Unprocessable Entity` before compute dispatch, while allowing valid requests with 200 OK:
-
-![Server-side Validation](images/W2D2-3.png)
-
-2. Test Suite Execution & Concurrency Probe
-Full test run achieving a `12/12` pass rate (`GREEN CHECK: PASS`) and confirming expected serial execution for synchronous CPU inference:
-
-![Test Suite Results](images/W2D2-4.png)
-
----
-
