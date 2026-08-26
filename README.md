@@ -116,5 +116,61 @@ GREEN CHECK: PASS
 
 ---
 
+# Bug Lab W2D4: The Guard That Only Guards One Door
+
+## Overview
+
+Remediated a silent failure and false hardware reporting bug in a FastAPI inference service. The `/v1/embeddings` endpoint originally bypassed CPU validation via a no-op guard (`if DEVICE != "cuda": pass`) and returned hardcoded `"device_used": "cuda"`. The service was hardened to strictly enforce hardware validation and report execution runtime truthfully.
+
+---
+
+## The Bug & Fix
+
+* **Before (Buggy & Misleading)**:
+
+```python
+@app.post("/v1/embeddings")
+def embeddings(payload: dict):
+    if DEVICE != "cuda":
+        pass  # BUG: No-op guard
+    return {"vector": [0.1] * 8, "device_used": "cuda"}  # BUG: Hardcoded
+```
+
+* **After (Hardened & Accurate)**:
+
+```python
+@app.post("/v1/embeddings")
+def embeddings(payload: dict):
+    if DEVICE != "cuda":
+        raise HTTPException(
+            status_code=400,
+            detail="Embeddings require a GPU-backed instance; this instance is running in CPU-fallback mode.",
+        )
+    return {"vector": [0.1] * 8, "device_used": DEVICE}
+```
+
+---
+
+## Verification
+
+Running `verify_bug.py` against a CPU-isolated instance (`CUDA_VISIBLE_DEVICES=""`):
+
+```bash
+python3 verify_bug.py
+```
+
+```text
+INFO:     127.0.0.1:58950 - "POST /v1/embeddings HTTP/1.1" 400 Bad Request
+GREEN CHECK: PASS
+```
+
+| Endpoint | Target Environment | Status | Reported Device | Verdict |
+| --- | --- | --- | --- | --- |
+| `/v1/embeddings` | CPU Fallback | `400 Bad Request` | N/A (Rejected) | **PASS** |
+| `/v1/embeddings` | GPU (CUDA) | `200 OK` | `cuda` | **PASS** |
+| `/v1/chat/completions` | `require_gpu=True` on CPU | `400 Bad Request` | N/A (Rejected) | **PASS** |
+
+---
+
 
 
