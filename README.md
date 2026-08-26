@@ -83,6 +83,9 @@ INFO:     127.0.0.1:56556 - "POST /v1/chat/completions HTTP/1.1" 200 OK
 GREEN CHECK: PASS
 ```
 
+![GPU Mode Verification](assets/gpu_pass.png)
+
+
 ### Environment 2: CPU Fallback Runtime (`CUDA_VISIBLE_DEVICES=""`)
 
 * **Command**: `CUDA_VISIBLE_DEVICES="" python3 -m uvicorn app.main:app --host 0.0.0.0 --port 8000`
@@ -97,6 +100,7 @@ INFO:     127.0.0.1:47450 - "POST /v1/chat/completions HTTP/1.1" 400 Bad Request
 [PASS] GPU-only request fails cleanly on CPU (400, clear message)
 GREEN CHECK: PASS
 ```
+![CPU Mode Verification](assets/cpu_pass.png)
 
 ---
 
@@ -111,3 +115,6 @@ GREEN CHECK: PASS
 | **GPU-Bound Request** | CPU (`cpu`) | `True` | `400 Bad Request` | `400 Bad Request` | **PASS** |
 
 ---
+
+
+
