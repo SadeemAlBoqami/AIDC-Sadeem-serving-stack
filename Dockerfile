@@ -1,27 +1,20 @@
 FROM python:3.11-slim
 
-# a non-root user whose home holds the model cache; the run command mounts
-# a volume exactly here, so the path must exist and be writable
-RUN useradd --create-home app
-ENV HF_HOME=/home/app/.cache/huggingface
-
 WORKDIR /app
 
-# requirements layer FIRST: cached across code edits.
-# --index-url makes the CPU wheel index authoritative, so pip takes the CPU
-# torch (~180 MB) instead of the default CUDA build (~2.5 GB). Without it this
-# image is ~6.5 GB and the push takes over an hour on classroom wifi.
-COPY app/requirements.txt .
-RUN pip install --no-cache-dir \
-      --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple \
-      -r requirements.txt
+RUN pip install --no-cache-dir torch==2.4.1 --index-url https://download.pytorch.org/whl/cpu && \
+    pip install --no-cache-dir \
+    fastapi==0.115.0 \
+    uvicorn==0.30.6 \
+    transformers==4.45.1 \
+    accelerate==0.34.2
 
-# code SECOND: this is the layer that changes every edit
-COPY app/ .
-# Create the cache folder and set its ownership to the ‘app’ user
-RUN mkdir -p /home/app/.cache/huggingface && chown -R app:app /home/app/.cache
+COPY app/ ./app/
 
-USER app
+ENV MODEL_ID="Qwen/Qwen2.5-0.5B-Instruct"
+ENV HOST_PORT=8000
+ENV MAX_TOKENS=256
 
 EXPOSE 8000
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
