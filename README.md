@@ -27,3 +27,5 @@ The stack achieved full automated verification via `verify.sh`:
 - **Access Control:** `/v1/models` successfully rejected unauthenticated requests (`401`) and allowed authenticated requests (`200`).
 - **End-to-End Inference:** `/v1/chat/completions` generated validated OpenAI-compatible responses under token ceilings.
 - **Shipped Checkpoint:** Passed with `GREEN CHECK: PASS`.
+
+![W2D5 Verification Pass](images/W2D5%20lab.png)
