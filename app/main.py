@@ -1,137 +1,117 @@
-"""serving-stack: the FastAPI service (week 2, CPU, tiny model).
-
-This is the starter. GET /health is done for you and works as soon as the model
-loads: treat it as the worked example. Your job is the two routes marked TODO.
-Correctness before speed. The model runs on CPU this week; do not add a GPU.
-
-Run it:
-    uvicorn main:app --host 0.0.0.0 --port 8000
-
-Model: Qwen/Qwen2.5-0.5B-Instruct (about 0.5B params; loads on CPU in seconds
-once cached). The first ever load downloads weights; the prep-week verify-env
-pass pre-seeded the Hugging Face cache, so a cached load is fast.
-"""
-from __future__ import annotations
-
 import os
+import sys
 import time
 import uuid
-
+import logging
 import torch
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Header, Depends
+from pydantic import BaseModel, Field
+from typing import List, Optional
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-from schemas import (
-    ChatCompletionRequest,
-    ChatCompletionResponse,
-    Choice,
-    HealthResponse,
-    ModelCard,
-    ModelList,
-    ResponseMessage,
-    Usage,
-)
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("serving")
 
 MODEL_ID = os.environ.get("MODEL_ID", "Qwen/Qwen2.5-0.5B-Instruct")
+API_KEY = os.environ.get("API_KEY", "")
+MAX_TOKENS = int(os.environ.get("MAX_TOKENS", "256"))
 
-app = FastAPI(title="serving-stack", version="wk2")
+if not API_KEY:
+    logger.warning("WARNING: API_KEY is unset. Running unauthenticated (open).")
 
-# Load once at import time. CPU only this week.
-print(f"loading {MODEL_ID} on cpu ...")
+DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+print(f"loading {MODEL_ID} on {DEVICE} ...")
 tokenizer = AutoTokenizer.from_pretrained(MODEL_ID)
-model = AutoModelForCausalLM.from_pretrained(MODEL_ID, torch_dtype=torch.float32)
-model.to("cpu")
-model.eval()
+model = AutoModelForCausalLM.from_pretrained(
+    MODEL_ID,
+    torch_dtype=torch.float16 if DEVICE == "cuda" else torch.float32,
+    device_map="auto" if DEVICE == "cuda" else None
+)
+if DEVICE == "cpu":
+    model.to("cpu")
 print("model ready")
 
+app = FastAPI(title="aidc-serving")
 
-# ---------------------------------------------------------------------------
-# GET /health  -- DONE. This is the worked example. Copy its shape.
-# ---------------------------------------------------------------------------
-@app.get("/health", response_model=HealthResponse)
-def health() -> HealthResponse:
-    """Liveness and readiness.
+def verify_api_key(authorization: Optional[str] = Header(None)):
+    if not API_KEY:
+        return
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Unauthorized: Missing or invalid Bearer token")
+    token = authorization.split(" ")[1]
+    if token != API_KEY:
+        raise HTTPException(status_code=401, detail="Unauthorized: Invalid API key")
 
-    Contract: returns 200 with {"status": "ok", "model": "<id>"} once the model
-    is loaded. Kubernetes probes (week 4) and the agentic client's retry logic
-    (weeks 4 to 6) call this. It must be cheap and must not run the model.
-    """
-    return HealthResponse(status="ok", model=MODEL_ID)
+class ChatMessage(BaseModel):
+    role: str
+    content: str
 
+class ChatCompletionRequest(BaseModel):
+    model: Optional[str] = MODEL_ID
+    messages: List[ChatMessage]
+    max_tokens: Optional[int] = Field(default=16)
+    temperature: Optional[float] = 0.7
 
-# ---------------------------------------------------------------------------
-# GET /v1/models
-# ---------------------------------------------------------------------------
-@app.get("/v1/models", response_model=ModelList)
-def list_models() -> ModelList:
-    """List the served model id(s)."""
-    card = ModelCard(
-        id=MODEL_ID,
-        object="model",
-        created=int(time.time()),
-        owned_by="local",
-    )
-    return ModelList(object="list", data=[card])
+@app.get("/health")
+def health():
+    return {"status": "ok", "model": MODEL_ID}
 
-
-# ---------------------------------------------------------------------------
-# POST /v1/chat/completions (non-streaming)
-# ---------------------------------------------------------------------------
-@app.post("/v1/chat/completions", response_model=ChatCompletionResponse)
-def chat_completions(req: ChatCompletionRequest) -> ChatCompletionResponse:
-    """Run the model over the messages and return an OpenAI-compatible completion."""
-    # 1. تطبيق قالب المحادثة وتحويل الرسائل
-    messages = [m.model_dump(exclude_none=True) for m in req.messages]
-    prompt_text = tokenizer.apply_chat_template(
-        messages,
-        tokenize=False,
-        add_generation_prompt=True,
-    )
-    inputs = tokenizer(prompt_text, return_tensors="pt").to("cpu")
-    input_ids = inputs["input_ids"]
-
-    # 2. حساب عدد التوكنات المدخلة
-    prompt_tokens = int(input_ids.shape[1])
-
-    # 3. إعداد معاملات التوليد
-    max_tokens = req.max_tokens if req.max_tokens is not None else 128
-    do_sample = bool(req.temperature is not None and req.temperature > 0)
-
-    gen_kwargs = {
-        "max_new_tokens": max_tokens,
-        "do_sample": do_sample,
+@app.get("/v1/models", dependencies=[Depends(verify_api_key)])
+def list_models():
+    return {
+        "object": "list",
+        "data": [
+            {
+                "id": MODEL_ID,
+                "object": "model",
+                "created": int(time.time()),
+                "owned_by": "aidc"
+            }
+        ]
     }
-    if do_sample and req.temperature is not None:
-        gen_kwargs["temperature"] = float(req.temperature)
 
-    # 4. تشغيل عملية الاستدلال
-    with torch.no_grad():
-        out = model.generate(input_ids, **gen_kwargs)
+@app.post("/v1/chat/completions", dependencies=[Depends(verify_api_key)])
+def chat_completions(req: ChatCompletionRequest):
+    clamped_tokens = min(req.max_tokens if req.max_tokens else 16, MAX_TOKENS)
 
-    # 5. استخراج التوكنات الجديدة وفك ترميزها
-    new_tokens = out[0][prompt_tokens:]
-    completion_tokens = len(new_tokens)
-    text = tokenizer.decode(new_tokens, skip_special_tokens=True)
-
-    # 6. تحديد سبب التوقف
-    finish_reason = "length" if completion_tokens >= max_tokens else "stop"
-
-    # 7. بناء الرد النهائي
-    return ChatCompletionResponse(
-        id=f"chatcmpl-{uuid.uuid4().hex}",
-        object="chat.completion",
-        created=int(time.time()),
-        model=req.model,
-        choices=[
-            Choice(
-                index=0,
-                message=ResponseMessage(role="assistant", content=text),
-                finish_reason=finish_reason,
-            )
-        ],
-        usage=Usage(
-            prompt_tokens=prompt_tokens,
-            completion_tokens=completion_tokens,
-            total_tokens=prompt_tokens + completion_tokens,
-        ),
+    text = tokenizer.apply_chat_template(
+        [m.model_dump() for m in req.messages],
+        tokenize=False,
+        add_generation_prompt=True
     )
+    model_inputs = tokenizer([text], return_tensors="pt").to(DEVICE)
+
+    with torch.no_grad():
+        generated_ids = model.generate(
+            **model_inputs,
+            max_new_tokens=clamped_tokens,
+            do_sample=False if req.temperature == 0 else True,
+            temperature=req.temperature if req.temperature > 0 else None
+        )
+
+    generated_ids = [
+        output_ids[len(input_ids):] for input_ids, output_ids in zip(model_inputs.input_ids, generated_ids)
+    ]
+    response_text = tokenizer.batch_decode(generated_ids, skip_special_tokens=True)[0]
+
+    return {
+        "id": f"chatcmpl-{uuid.uuid4().hex[:8]}",
+        "object": "chat.completion",
+        "created": int(time.time()),
+        "model": req.model,
+        "choices": [
+            {
+                "index": 0,
+                "message": {
+                    "role": "assistant",
+                    "content": response_text
+                },
+                "finish_reason": "stop"
+            }
+        ],
+        "usage": {
+            "prompt_tokens": len(model_inputs.input_ids[0]),
+            "completion_tokens": len(generated_ids[0]),
+            "total_tokens": len(model_inputs.input_ids[0]) + len(generated_ids[0])
+        }
+    }
