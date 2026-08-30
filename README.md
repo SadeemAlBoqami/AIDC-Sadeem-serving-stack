@@ -12,8 +12,9 @@ Empirical profiling of resident VRAM, GPU utilisation, and decoding throughput a
 
 ---
 
-## Lab Artifacts
-* `w3d1_profile_inference.ipynb`
-* `profile.json`
-* `batch_check.json`
-* `verify_cell.py`
+## Verify (green check)
+```
+rows: 6, dtypes: ['fp16', 'int8'], contexts: [512, 2048, 4096]
+batch-1 tokens/s: 28.8, batch-8 tokens/s: 175.3
+GREEN CHECK: PASS
+```
