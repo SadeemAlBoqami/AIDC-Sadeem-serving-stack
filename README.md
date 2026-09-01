@@ -1,27 +1,12 @@
-# AI Data Center Operations & Serving Stack
+# W3D3 Lab: vLLM
 
-This repository contains daily labs, benchmarks, and production deployments for the AI Data Center Operations Bootcamp. Each branch represents an isolated standalone layer of the overall serving stack.
+## Objective:
 
----
+## Predictions card:
 
-## Repository Structure & Daily Branches
+- At concurrency 8, I predict vLLM's throughput will be about 2.5x times Monday's static-batch-8 baseline.
+- Based on my baselines.json, static batching scaled 2.88x from batch 1 to 8 (81.1 / 28.2).
+- For vLLM running the identical queue, I predict it will scale 4x from concurrency 1 to 8.
+- Because continuous batching eliminates slot efficiency collapse under mixed output lengths, I expect vLLM's scaling multiple to be larger than static batching's, and roughly 1.4x larger.
 
-### Week 2: Microservices, Containerisation & Orchestration
-* **`w2d1`**: Microservices architecture & API contract definitions.
-* **`w2d2`**: OpenAI-compatible serving stack implementation.
-* **`w2d3`**: CPU-based containerisation & Docker runtime deployment.
-* **`w2d4`**: Portable GPU image configuration with CPU fallback.
-* **`w2d5`**: Multi-container Docker Compose stack with auth & token clipping.
-
----
-
-### Week 3: High-Performance GPU Serving Engines & Profiling
-* **`w3d1`**: Inference profiling on NVIDIA T4 GPU (VRAM scaling, arithmetic intensity, and batching dynamics).
-
----
-
-## Navigation
-Switch to any specific branch using the branch selector above or via Git CLI:
-```bash
-git checkout <branch-name>
-
+  ---
