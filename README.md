@@ -17,6 +17,8 @@ This repository contains daily labs, benchmarks, and production deployments for 
 
 ### Week 3: High-Performance GPU Serving Engines & Profiling
 * **`w3d1`**: Inference profiling on NVIDIA T4 GPU (VRAM scaling, arithmetic intensity, and batching dynamics).
+* **`w3d2`**: LLM inference anatomy, KV-cache memory arithmetic & PagedAttention block-pool allocation.
+* **`w3d3`**: vLLM engine swap via Continuous Batching & PagedAttention, client-side load shedding.
 
 ---
 
