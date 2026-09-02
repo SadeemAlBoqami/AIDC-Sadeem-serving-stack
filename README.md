@@ -49,3 +49,8 @@ A comparative check confirmed zero semantic degradation between FP16 and AWQ:
     --quantization awq \
     --enable-auto-tool-choice \
     --tool-call-parser hermes
+  ```
+  
+* **Status:** `GREEN CHECK: PASS`
+
+---
