@@ -19,6 +19,16 @@ This repository contains daily labs, benchmarks, and production deployments for 
 * **`w3d1`**: Inference profiling on NVIDIA T4 GPU (VRAM scaling, arithmetic intensity, and batching dynamics).
 * **`w3d2`**: LLM inference anatomy, KV-cache memory arithmetic & PagedAttention block-pool allocation.
 * **`w3d3`**: vLLM engine swap via Continuous Batching & PagedAttention, client-side load shedding.
+* **`w3d4`**: Model locking, AWQ quantization & tool-call parser adherence gates.
+* **`w3d5`**: Concurrency sweep, SLO knee sizing, serving cost & cold-start triage.
+
+---
+### Week 4:
+* **`w4d1`**:
+* **`w4d2`**:
+* **`w4d3`**:
+* **`w4d4`**:
+* **`w4d5`**:
 
 ---
 
