@@ -53,3 +53,24 @@ Convert empirical serving metrics (`tokens/s` and `p95 latency`) into financial 
 
 * **The Unit Cost Paradox:** While higher concurrency mathematically suppresses the cost per million tokens, pushing past the knee breaches the SLO. Lower theoretical costs at degraded latency fail production viability.
 * **Scale-Out Decision Model:** To absorb spikes exceeding knee capacity (3,142.41 tok/s), traffic must scale out across identical replicas running strictly at the safe knee concurrency. This preserves tail latency (`p95 = 2.267s`) across all replicas without risking queue saturation or thrashing.
+
+---
+
+# Benchmark Harness Warm-Up Fix: Cold-Start Confound Elimination
+
+## Problem Statement
+Initial loop iterations in automated benchmarking harnesses absorbed non-recurring system overheads (CUDA JIT kernel compilation, memory allocator bootstrapping, and runtime framework initialization). This resulted in an inverted latency curve where the shortest prompt (`128 tokens`) exhibited worse latency than `512 tokens` simply because it executed first.
+
+## Root Cause
+Benchmarking without execution isolation:
+* **The First-Call Penalty:** First `generate()` execution absorbs PyTorch/CUDA overhead unrelated to payload size.
+* **GPU Asynchrony:** Measuring wall-clock time without `torch.cuda.synchronize()` distorts timing boundaries.
+
+## The Fix
+1. **Throwaway Warm-up Run:** Executed an untimed warm-up request prior to the timing loop to prime hardware state and warm kernel caches.
+2. **CUDA Synchronization:** Enforced `torch.cuda.synchronize()` before and after the timing block to capture genuine end-to-end execution.
+
+## Verification
+* Latency now scales strictly monotonically with context length:
+  $$\text{Latency}(128) < \text{Latency}(512) < \text{Latency}(2048)$$
+* Status: **`GREEN CHECK: PASS`**
