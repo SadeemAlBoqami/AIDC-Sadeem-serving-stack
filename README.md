@@ -56,7 +56,7 @@ Convert empirical serving metrics (`tokens/s` and `p95 latency`) into financial 
 
 ---
 
-# Benchmark Harness Warm-Up Fix: Cold-Start Confound Elimination
+# BUG LAB: the benchmark that graded the wrong contestant
 
 ## Problem Statement
 Initial loop iterations in automated benchmarking harnesses absorbed non-recurring system overheads (CUDA JIT kernel compilation, memory allocator bootstrapping, and runtime framework initialization). This resulted in an inverted latency curve where the shortest prompt (`128 tokens`) exhibited worse latency than `512 tokens` simply because it executed first.
