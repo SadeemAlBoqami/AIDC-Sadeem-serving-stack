@@ -1,39 +1,72 @@
-# AI Data Center Operations & Serving Stack
+# Week 4 Day 1: First Cluster — Multi-Tenancy & Pod Diagnostics
 
-This repository contains daily labs, benchmarks, and production deployments for the AI Data Center Operations Bootcamp. Each branch represents an isolated standalone layer of the overall serving stack.
-
----
-
-## Repository Structure & Daily Branches
-
-### Week 2: Microservices, Containerisation & Orchestration
-* **`w2d1`**: Microservices architecture & API contract definitions.
-* **`w2d2`**: OpenAI-compatible serving stack implementation.
-* **`w2d3`**: CPU-based containerisation & Docker runtime deployment.
-* **`w2d4`**: Portable GPU image configuration with CPU fallback.
-* **`w2d5`**: Multi-container Docker Compose stack with auth & token clipping.
+Operational log for configuring isolated Kubernetes namespaces on a shared `k3s` cluster, diagnosing scheduling and runtime failures, and deploying a functional LLM serving microservice.
 
 ---
 
-### Week 3: High-Performance GPU Serving Engines & Profiling
-* **`w3d1`**: Inference profiling on NVIDIA T4 GPU (VRAM scaling, arithmetic intensity, and batching dynamics).
-* **`w3d2`**: LLM inference anatomy, KV-cache memory arithmetic & PagedAttention block-pool allocation.
-* **`w3d3`**: vLLM engine swap via Continuous Batching & PagedAttention, client-side load shedding.
-* **`w3d4`**: Model locking, AWQ quantization & tool-call parser adherence gates.
-* **`w3d5`**: Concurrency sweep, SLO knee sizing, serving cost & cold-start triage.
+## Environment
 
----
-### Week 4:
-* **`w4d1`**:
-* **`w4d2`**:
-* **`w4d3`**:
-* **`w4d4`**:
-* **`w4d5`**:
+* **Cluster:** `k3s` on `aidc-t09` (NVIDIA RTX A6000)
+* **Namespace:** `sadeem`
+* **Base Image:** `sadeemalboqami/aidc-serving:cpu-v1`
+
+* **Target Model:** `Qwen/Qwen2.5-0.5B-Instruct`
+
 
 ---
 
-## Navigation
-Switch to any specific branch using the branch selector above or via Git CLI:
+## Triage: The Three Refusals
+
+| Pod | Observed Status | Component Responsible | Root Cause |
+| --- | --- | --- | --- |
+| `pod-a` | `ImagePullBackOff` | `kubelet` | Non-existent image tag on remote registry (`busybox:this-tag-does-not-exist`). |
+| `pod-b` | `Pending` | `default-scheduler` | Insufficient compute capacity; requested 64 CPU cores on a 28-core physical node. |
+| `pod-c` | `CrashLoopBackOff` | Container Runtime | Application crash on launch exiting with internal failure (`Exit Code: 3`). |
+
+---
+
+## Deployment & Verification
+
+1. **Deploy Workload**
+
 ```bash
-git checkout <branch-name>
+kubectl apply -f pod.yaml
+kubectl get pods -w
 
+```
+
+
+2. **Port-Forward & Probe Endpoints**
+```bash
+kubectl port-forward pod/serving 8001:8000
+
+```
+
+
+* Readiness check (`/health`): Returns HTTP `200` (`{"status":"ok"}`).
+* Model listing (`/v1/models`): Confirms `Qwen/Qwen2.5-0.5B-Instruct` is registered.
+* Inference test (`/v1/chat/completions`): Validates request routing and JSON payload completion.
+
+
+3. **Automated Cluster Validation**
+
+```bash
+bash verify.sh
+
+```
+
+
+* Output: `GREEN CHECK: PASS`
+
+* Evidence: Saved cluster state to `w4d1_evidence.json`.
+
+
+
+
+
+---
+
+## Hardware Contention Note (Stretch)
+
+* Requesting exclusive GPU resources via `[nvidia.com/gpu](https://nvidia.com/gpu): 1` places concurrent pods into `Pending` state (`Insufficient [nvidia.com/gpu](https://nvidia.com/gpu)`) due to indivisible device locking.
+* CPU workloads run unaffected during GPU allocation bottlenecks.
