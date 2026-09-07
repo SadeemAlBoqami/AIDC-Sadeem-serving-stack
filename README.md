@@ -1,39 +1,79 @@
-# AI Data Center Operations & Serving Stack
+# Lab W4D2: Make it Self-Healing
 
-This repository contains daily labs, benchmarks, and production deployments for the AI Data Center Operations Bootcamp. Each branch represents an isolated standalone layer of the overall serving stack.
+## Overview
 
----
-
-## Repository Structure & Daily Branches
-
-### Week 2: Microservices, Containerisation & Orchestration
-* **`w2d1`**: Microservices architecture & API contract definitions.
-* **`w2d2`**: OpenAI-compatible serving stack implementation.
-* **`w2d3`**: CPU-based containerisation & Docker runtime deployment.
-* **`w2d4`**: Portable GPU image configuration with CPU fallback.
-* **`w2d5`**: Multi-container Docker Compose stack with auth & token clipping.
+Moving from an unmanaged, single container (bare Pod) to a production-grade, self-healing model-serving architecture on Kubernetes (k3s). The system demonstrates zero-downtime rolling updates and automatic fault recovery under continuous traffic.
 
 ---
 
-### Week 3: High-Performance GPU Serving Engines & Profiling
-* **`w3d1`**: Inference profiling on NVIDIA T4 GPU (VRAM scaling, arithmetic intensity, and batching dynamics).
-* **`w3d2`**: LLM inference anatomy, KV-cache memory arithmetic & PagedAttention block-pool allocation.
-* **`w3d3`**: vLLM engine swap via Continuous Batching & PagedAttention, client-side load shedding.
-* **`w3d4`**: Model locking, AWQ quantization & tool-call parser adherence gates.
-* **`w3d5`**: Concurrency sweep, SLO knee sizing, serving cost & cold-start triage.
+## Core Concepts Implemented
+
+* **Deployment Controller**: Manages state, handles pod replication, and guarantees auto-recovery upon pod termination.
+* **Service Abstraction**: Exposes a stable DNS name (`serving:8000`) and decouples traffic routing from ephemeral pod IPs using label selectors (`app: serving`).
+
+
+* **Readiness Probe**: Gates incoming client traffic to ensure no requests hit an uninitialized model still returning 503.
+
+
+* **Liveness Probe**: Restarts unhealthy or hanging containers while avoiding startup boot loops via `initialDelaySeconds: 20`.
+
+
+* **Zero-Downtime Guarantee**: Combined `maxUnavailable: 0` with a 5-second `preStop` hook to eliminate connection drops during endpoint deregistration races.
+
+
 
 ---
-### Week 4:
-* **`w4d1`**:
-* **`w4d2`**:
-* **`w4d3`**:
-* **`w4d4`**:
-* **`w4d5`**:
+
+## Architecture Specification
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: serving
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  template:
+    metadata:
+      labels:
+        app: serving
+    spec:
+      containers:
+        - name: serving
+          image: <user>/aidc-serving:cpu-v1
+          ports:
+            - containerPort: 8000
+          lifecycle:
+            preStop:
+              sleep:
+                seconds: 5
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            periodSeconds: 2
+            failureThreshold: 2
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 20
+            periodSeconds: 5
+
+```
 
 ---
 
-## Navigation
-Switch to any specific branch using the branch selector above or via Git CLI:
-```bash
-git checkout <branch-name>
+## Verification & Key Findings
+
+| Test Scenario | Condition | Traffic Load | Observed Result | Target |
+| --- | --- | --- | --- | --- |
+| **Fault Recovery (Kill Demo)** | Delete 1 active Pod | 10 req/s (every 100 ms) | `ok=877, bad=0` | Zero dropped requests |
+| **Rolling Update** | Environment update (`APP_VERSION=v2`) | 10 req/s (every 100 ms) | `ok=877, bad=0` | Zero dropped requests |
+| **Automated Harness (`verify.sh`)**<br> | Full rollout with spec inspection | Continuous probes | `ok=439, bad=0`<br> | `GREEN CHECK: PASS`<br> |
 
