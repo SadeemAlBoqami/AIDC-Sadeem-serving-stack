@@ -1,39 +1,28 @@
-# AI Data Center Operations & Serving Stack
+# Lab W4D3: GPU Scheduling, Resource Accounting, and vLLM Deployment
 
-This repository contains daily labs, benchmarks, and production deployments for the AI Data Center Operations Bootcamp. Each branch represents an isolated standalone layer of the overall serving stack.
-
----
-
-## Repository Structure & Daily Branches
-
-### Week 2: Microservices, Containerisation & Orchestration
-* **`w2d1`**: Microservices architecture & API contract definitions.
-* **`w2d2`**: OpenAI-compatible serving stack implementation.
-* **`w2d3`**: CPU-based containerisation & Docker runtime deployment.
-* **`w2d4`**: Portable GPU image configuration with CPU fallback.
-* **`w2d5`**: Multi-container Docker Compose stack with auth & token clipping.
+## Overview
+This lab covers Kubernetes resource management, QoS classes, CPU/GPU scheduling constraints, and deploying a shared vLLM inference engine on a GPU-accelerated node.
 
 ---
 
-### Week 3: High-Performance GPU Serving Engines & Profiling
-* **`w3d1`**: Inference profiling on NVIDIA T4 GPU (VRAM scaling, arithmetic intensity, and batching dynamics).
-* **`w3d2`**: LLM inference anatomy, KV-cache memory arithmetic & PagedAttention block-pool allocation.
-* **`w3d3`**: vLLM engine swap via Continuous Batching & PagedAttention, client-side load shedding.
-* **`w3d4`**: Model locking, AWQ quantization & tool-call parser adherence gates.
-* **`w3d5`**: Concurrency sweep, SLO knee sizing, serving cost & cold-start triage.
+## Key Tasks & Achievements
 
----
-### Week 4:
-* **`w4d1`**:
-* **`w4d2`**:
-* **`w4d3`**:
-* **`w4d4`**:
-* **`w4d5`**:
+### 1. Resource Requests & Limits
+* Configured CPU and Memory `requests` and `limits` in deployment manifests to establish proper QoS classes.
+* Verified resource accounting via `kubectl describe node` under the `Allocated resources` ledger.
 
----
+### 2. Overcommitment & Scheduler Enforcement
+* Tested resource overdraw by requesting impossible allocations (e.g., `cpu: "64"`).
+* Confirmed the scheduler rejects over-allocated pods into `Pending` state with the `Insufficient cpu` event.
 
-## Navigation
-Switch to any specific branch using the branch selector above or via Git CLI:
-```bash
-git checkout <branch-name>
+### 3. GPU Scheduling & Team Namespaces
+* Verified GPU hardware ledger tracking via `nvidia.com/gpu` requests.
+* Resolved resource contention and scheduling conflicts in shared environments using strict namespace isolation (`team` vs. individual `$ME` namespaces).
 
+### 4. Noisy Neighbour Mitigation
+* Measured latency impact ($p95$) under unconstrained CPU load (`while True: pass`).
+* Demonstrated how setting explicit CPU `limits` protects inference service latencies from rogue workloads.
+
+### 5. vLLM Engine Deployment & Verification
+* Deployed the production vLLM inference engine to the shared `team` namespace utilizing the physical GPU node.
+* Executed automated verification scripts (`verify.sh`) resulting in **`GREEN CHECK: PASS`**.
