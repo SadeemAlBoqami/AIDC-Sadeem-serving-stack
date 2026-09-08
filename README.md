@@ -24,9 +24,9 @@ This repository contains daily labs, benchmarks, and production deployments for 
 
 ---
 ### Week 4:
-* **`w4d1`**:
-* **`w4d2`**:
-* **`w4d3`**:
+* **`w4d1`**: First cluster setup using Kubernetes architecture and Kind.
+* **`w4d2`**: Self-healing deployments, services, and health probes.
+* **`w4d3`**: GPU scheduling, resource accounting, and ledger management.
 * **`w4d4`**:
 * **`w4d5`**:
 
