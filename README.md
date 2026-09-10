@@ -1,39 +1,26 @@
-# AI Data Center Operations & Serving Stack
+# Lab d5: vLLM Serving & Integration Summary
 
-This repository contains daily labs, benchmarks, and production deployments for the AI Data Center Operations Bootcamp. Each branch represents an isolated standalone layer of the overall serving stack.
+## Overview
+Successfully deployed, integrated, and validated a high-performance LLM serving instance using `vLLM` and Kubernetes within the `team` namespace on node `aidc-t09`.
 
----
+## Key Deployments & Architecture
+- **Model Served**: `Qwen/Qwen2.5-1.5B-Instruct-AWQ`
+- **Kubernetes Namespace**: `team`
+- **Serving Service**: `team-serving` (NodePort mapping to container port 8000)
+- **Monitoring**: In-cluster Prometheus deployment configured for metric scraping.
 
-## Repository Structure & Daily Branches
+## Validation & Testing Results
+- **Automated Verification**: Passed all diagnostic checks with `GREEN CHECK: PASS` via `verify.sh`.
+- **Manual API Test**: Validated OpenAI-compatible chat completion endpoints successfully.
+  - *Sample Response JSON snippet*:
+    ```json
+    {
+      "id": "chatcmpl-9a7ccb1e6a90247f",
+      "model": "Qwen/Qwen2.5-1.5B-Instruct-AWQ",
+      "choices": [{"message": {"role": "assistant", "content": "Hello! Yes, I am prepared and ready..."}}],
+      "usage": {"prompt_tokens": 35, "completion_tokens": 27, "total_tokens": 62}
+    }
+    ```
 
-### Week 2: Microservices, Containerisation & Orchestration
-* **`w2d1`**: Microservices architecture & API contract definitions.
-* **`w2d2`**: OpenAI-compatible serving stack implementation.
-* **`w2d3`**: CPU-based containerisation & Docker runtime deployment.
-* **`w2d4`**: Portable GPU image configuration with CPU fallback.
-* **`w2d5`**: Multi-container Docker Compose stack with auth & token clipping.
-
----
-
-### Week 3: High-Performance GPU Serving Engines & Profiling
-* **`w3d1`**: Inference profiling on NVIDIA T4 GPU (VRAM scaling, arithmetic intensity, and batching dynamics).
-* **`w3d2`**: LLM inference anatomy, KV-cache memory arithmetic & PagedAttention block-pool allocation.
-* **`w3d3`**: vLLM engine swap via Continuous Batching & PagedAttention, client-side load shedding.
-* **`w3d4`**: Model locking, AWQ quantization & tool-call parser adherence gates.
-* **`w3d5`**: Concurrency sweep, SLO knee sizing, serving cost & cold-start triage.
-
----
-### Week 4:
-* **`w4d1`**: First cluster setup using Kubernetes architecture and Kind.
-* **`w4d2`**: Self-healing deployments, services, and health probes.
-* **`w4d3`**: GPU scheduling, resource accounting, and ledger management.
-* **`w4d4`**:
-* **`w4d5`**:
-
----
-
-## Navigation
-Switch to any specific branch using the branch selector above or via Git CLI:
-```bash
-git checkout <branch-name>
-
+## Deliverables
+- **Integration Note**: Configured and finalized `my-integration-note.md` matching endpoint configurations, model identifiers, and operational SLOs.
