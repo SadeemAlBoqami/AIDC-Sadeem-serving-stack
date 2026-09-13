@@ -27,10 +27,16 @@ This repository contains daily labs, benchmarks, and production deployments for 
 * **`w4d1`**: First cluster setup using Kubernetes architecture and Kind.
 * **`w4d2`**: Self-healing deployments, services, and health probes.
 * **`w4d3`**: GPU scheduling, resource accounting, and ledger management.
-* **`w4d4`**:
-* **`w4d5`**:
+* **`w4d4`**: Helm chart packaging, CPU-based autoscaling (HPA), and load generation.
+* **`w4d5`**: Production go-live execution, API key Secrets, and integration SLAs.
 
 ---
+### Week 5:
+* **`w5d1`**: Prometheus metrics scraping, Grafana dashboard integration, and SLI/SLO target tracking for vLLM telemetry.
+* **`w5d2`**:
+* **`w5d3`**:
+* **`w5d4`**:
+* **`w5d5`**:
 
 ## Navigation
 Switch to any specific branch using the branch selector above or via Git CLI:
