@@ -1,45 +1,12 @@
-# AI Data Center Operations & Serving Stack
+# W5D2: Alerting and Service Reports
 
-This repository contains daily labs, benchmarks, and production deployments for the AI Data Center Operations Bootcamp. Each branch represents an isolated standalone layer of the overall serving stack.
+## Overview
+This directory contains the artifacts for the Week 5 Day 2 lab of the AIDC Bootcamp. The lab focuses on configuring Grafana-managed alert rules, routing notifications to a custom webhook receiver, and documenting service-level objective (SLO) compliance.
 
----
+## Included Artifacts
+* **`my-alert.json`**: The exported Grafana alert rule configured to monitor the 95th percentile Time to First Token (TTFT) for the `team-serving` model.
+* **`notification-evidence.jsonl`**: Container logs from the `alert-inbox` webhook receiver, demonstrating the successful delivery of both `firing` and `resolved` alert states.
+* **`my-service-report.md`**: The SLO measurement report based on simulated API traffic.
 
-## Repository Structure & Daily Branches
-
-### Week 2: Microservices, Containerisation & Orchestration
-* **`w2d1`**: Microservices architecture & API contract definitions.
-* **`w2d2`**: OpenAI-compatible serving stack implementation.
-* **`w2d3`**: CPU-based containerisation & Docker runtime deployment.
-* **`w2d4`**: Portable GPU image configuration with CPU fallback.
-* **`w2d5`**: Multi-container Docker Compose stack with auth & token clipping.
-
----
-
-### Week 3: High-Performance GPU Serving Engines & Profiling
-* **`w3d1`**: Inference profiling on NVIDIA T4 GPU (VRAM scaling, arithmetic intensity, and batching dynamics).
-* **`w3d2`**: LLM inference anatomy, KV-cache memory arithmetic & PagedAttention block-pool allocation.
-* **`w3d3`**: vLLM engine swap via Continuous Batching & PagedAttention, client-side load shedding.
-* **`w3d4`**: Model locking, AWQ quantization & tool-call parser adherence gates.
-* **`w3d5`**: Concurrency sweep, SLO knee sizing, serving cost & cold-start triage.
-
----
-### Week 4:
-* **`w4d1`**: First cluster setup using Kubernetes architecture and Kind.
-* **`w4d2`**: Self-healing deployments, services, and health probes.
-* **`w4d3`**: GPU scheduling, resource accounting, and ledger management.
-* **`w4d4`**: Helm chart packaging, CPU-based autoscaling (HPA), and load generation.
-* **`w4d5`**: Production go-live execution, API key Secrets, and integration SLAs.
-
----
-### Week 5:
-* **`w5d1`**: Prometheus metrics scraping, Grafana dashboard integration, and SLI/SLO target tracking for vLLM telemetry.
-* **`w5d2`**:
-* **`w5d3`**:
-* **`w5d4`**:
-* **`w5d5`**:
-
-## Navigation
-Switch to any specific branch using the branch selector above or via Git CLI:
-```bash
-git checkout <branch-name>
-
+## Verification
+All configurations and evidence files have been validated using the lab's verification script, resulting in `GREEN CHECK: PASS`.
